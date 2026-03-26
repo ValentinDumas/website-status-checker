@@ -1,0 +1,3 @@
+Draft the complete implementation plan.
+With technologies and langages i can / could use.
+Refer to "raw-requirements.md" file.

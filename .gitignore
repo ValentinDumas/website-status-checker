@@ -1,0 +1,45 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+status-checker
+
+# Go build artifacts
+*.o
+*.a
+*.test
+*.out
+*.prof
+
+# Go workspace
+go.work
+go.work.sum
+
+# Dependency directory
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.log
+
+# Build output
+dist/
+build/
+
+# Sensitive config (if auth is added later)
+# Uncomment the line below if you add credentials to sites.yaml
+# sites.yaml

@@ -1,0 +1,42 @@
+# Sample Authentication Configuration
+# ====================================
+# This file shows example configurations for monitoring protected endpoints.
+# It is NOT used by the application — it is a reference for future use.
+#
+# To use authentication, add an "auth" block to any site in your sites.yaml.
+
+sites:
+  # ── Basic Auth ──────────────────────────────────────────────
+  # Use for endpoints protected by username/password (HTTP Basic Authentication)
+  - name: "Admin Panel"
+    url: "https://admin.mysite.com/health"
+    expected_status: 200
+    auth:
+      type: "basic"
+      username: "monitor"
+      password: "your-secret-password"
+
+  # ── API Key (Header) ───────────────────────────────────────
+  # Use for APIs that require a static key in a custom header
+  - name: "Private API"
+    url: "https://api.myservice.com/status"
+    expected_status: 200
+    auth:
+      type: "api_key"
+      header: "X-API-Key"
+      value: "your-api-key-here"
+
+  # ── Bearer Token ───────────────────────────────────────────
+  # Use for OAuth-protected endpoints that accept a static token
+  - name: "OAuth Protected Endpoint"
+    url: "https://app.example.com/api/health"
+    expected_status: 200
+    auth:
+      type: "bearer"
+      token: "your-bearer-token-here"
+
+  # ── No Auth (monitor via expected status) ──────────────────
+  # Clever trick: check if a protected server is UP by expecting 401
+  - name: "Protected Server (no creds needed)"
+    url: "https://secure.example.com"
+    expected_status: 401  # 401 means server is up, just not authenticated
