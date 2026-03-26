@@ -1,0 +1,18 @@
+# Website Status Checker Configuration
+
+settings:
+  check_interval: 30        # seconds between checks
+  request_timeout: 10       # seconds before marking a site as down
+  notify_on_change: true    # desktop notification when status changes
+
+sites:
+  - name: "My Portfolio"
+    url: "https://valentindumas.com"
+    expected_status: 200
+    check_interval: 10
+
+  - name: "VSDP Productions"
+    url: "https://vsdpproductions.com"
+
+  - name: "Craft Agents"
+    url: "https://craft-agents.com"
