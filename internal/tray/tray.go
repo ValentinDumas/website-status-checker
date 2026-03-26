@@ -8,6 +8,7 @@ import (
 
 	"github.com/getlantern/systray"
 
+	"github.com/ValentinDumas/website-status-checker/internal/autostart"
 	"github.com/ValentinDumas/website-status-checker/internal/config"
 	"github.com/ValentinDumas/website-status-checker/internal/monitor"
 )
@@ -38,19 +39,22 @@ type Manager struct {
 	loadConfig func(string) (*config.Config, error)
 
 	// Menu items — stored for dynamic updates.
-	siteItems   []*systray.MenuItem
-	refreshItem *systray.MenuItem
-	reloadItem  *systray.MenuItem
-	quitItem    *systray.MenuItem
+	siteItems     []*systray.MenuItem
+	refreshItem   *systray.MenuItem
+	reloadItem    *systray.MenuItem
+	autostartItem *systray.MenuItem
+	quitItem      *systray.MenuItem
+	autoStarter   autostart.AutoStarter
 }
 
 // NewManager creates a tray Manager wired to the given monitor.
 // loadConfig is the function used to reload configuration on demand.
 func NewManager(mon *monitor.Monitor, configPath string, loadConfig func(string) (*config.Config, error)) *Manager {
 	return &Manager{
-		monitor:    mon,
-		configPath: configPath,
-		loadConfig: loadConfig,
+		monitor:     mon,
+		configPath:  configPath,
+		loadConfig:  loadConfig,
+		autoStarter: autostart.NewWindowsAutoStarter(),
 	}
 }
 
@@ -98,6 +102,8 @@ func (m *Manager) buildMenu() {
 	m.refreshItem = systray.AddMenuItem("🔄 Refresh Now", "Check all sites immediately")
 	m.reloadItem = systray.AddMenuItem("📄 Reload Config", "Reload sites.yaml without restarting")
 	systray.AddSeparator()
+	m.autostartItem = systray.AddMenuItem(m.autostartLabel(), "Start application on Windows login")
+	systray.AddSeparator()
 	m.quitItem = systray.AddMenuItem("❌ Quit", "Exit Website Status Checker")
 }
 
@@ -109,11 +115,37 @@ func (m *Manager) handleMenuClicks() {
 			go m.monitor.RefreshAll()
 		case <-m.reloadItem.ClickedCh:
 			m.handleReloadConfig()
+		case <-m.autostartItem.ClickedCh:
+			m.handleAutostartToggle()
 		case <-m.quitItem.ClickedCh:
 			systray.Quit()
 			return
 		}
 	}
+}
+
+// handleAutostartToggle enables or disables auto-start on boot.
+func (m *Manager) handleAutostartToggle() {
+	if m.autoStarter.IsEnabled() {
+		if err := m.autoStarter.Disable(); err != nil {
+			systray.SetTooltip(fmt.Sprintf("Auto-start error: %v", err))
+			return
+		}
+	} else {
+		if err := m.autoStarter.Enable(); err != nil {
+			systray.SetTooltip(fmt.Sprintf("Auto-start error: %v", err))
+			return
+		}
+	}
+	m.autostartItem.SetTitle(m.autostartLabel())
+}
+
+// autostartLabel returns the display label for the auto-start menu item.
+func (m *Manager) autostartLabel() string {
+	if m.autoStarter.IsEnabled() {
+		return "🟢 Start on Boot (enabled)"
+	}
+	return "⚪ Start on Boot (disabled)"
 }
 
 // updateLoop periodically reads statuses from the monitor and updates
