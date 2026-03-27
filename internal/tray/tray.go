@@ -54,7 +54,7 @@ func NewManager(mon *monitor.Monitor, configPath string, loadConfig func(string)
 		monitor:     mon,
 		configPath:  configPath,
 		loadConfig:  loadConfig,
-		autoStarter: autostart.NewWindowsAutoStarter(),
+		autoStarter: autostart.New(),
 	}
 }
 

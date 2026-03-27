@@ -6,10 +6,6 @@ settings:
   notify_on_change: true    # desktop notification when status changes
 
 sites:
-  - name: "My Portfolio"
-    url: "https://valentindumas.com"
-    expected_status: 200
-    check_interval: 10
 
   - name: "VSDP Productions"
     url: "https://vsdpproductions.com"
