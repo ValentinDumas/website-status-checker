@@ -16,15 +16,34 @@
 
 ## Quick Start
 
+### Windows
 ```bash
-# Build
-go build -ldflags="-H=windowsgui" -o status-checker.exe
+# Build (hides the console window)
+go build -ldflags="-H=windowsgui" -o status-checker.exe .
 
 # Run
 ./status-checker.exe
 ```
 
-The app starts in the system tray. Right-click the icon to see site statuses.
+### macOS
+```bash
+# Build
+go build -v -o website-status-checker .
+
+# Run
+./website-status-checker
+```
+
+### Linux
+```bash
+# Build
+go build -v -o website-status-checker .
+
+# Run
+./website-status-checker
+```
+
+The app starts in the system tray. Click the tray icon to see your websites' current statuses.
 
 ## Configuration
 
@@ -58,7 +77,7 @@ Use the **"Reload Config"** menu item in the tray to apply changes without resta
 | Language | Go |
 | System tray | [getlantern/systray](https://github.com/getlantern/systray) |
 | Config | YAML ([gopkg.in/yaml.v3](https://pkg.go.dev/gopkg.in/yaml.v3)) |
-| Notifications | Windows Toast |
+| Notifications | Cross-platform Toast (`gen2brain/beeep`) |
 
 ## Project Structure
 
@@ -82,11 +101,14 @@ Use the **"Reload Config"** menu item in the tray to apply changes without resta
 # Run tests
 go test ./...
 
-# Build (console mode, for debugging)
-go build -o status-checker.exe
+# Build (Windows console mode, for debugging)
+go build -v -o status-checker.exe .
 
-# Build (windowsgui mode, no console window)
-go build -ldflags="-H=windowsgui" -o status-checker.exe
+# Build (Windows hidden console mode)
+go build -ldflags="-H=windowsgui" -o status-checker.exe .
+
+# Build (macOS / Linux)
+go build -v -o website-status-checker .
 ```
 
 ## License
