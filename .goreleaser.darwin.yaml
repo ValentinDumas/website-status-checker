@@ -1,0 +1,27 @@
+version: 2
+
+project_name: website-status-checker
+
+env:
+  - CGO_ENABLED=1
+
+builds:
+  - id: darwin-build
+    binary: website-status-checker
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+app:
+  - id: darwin-app
+    name: "Website Status Checker"
+    builds:
+      - darwin-build
+
+archives:
+  - id: fallback-archive
+    format: zip
+    builds:
+      - darwin-build

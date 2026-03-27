@@ -1,0 +1,38 @@
+version: 2
+
+project_name: website-status-checker
+
+env:
+  - CGO_ENABLED=1
+
+builds:
+  - id: linux-build
+    binary: website-status-checker
+    goos:
+      - linux
+    goarch:
+      - amd64
+
+archives:
+  - id: fallback-archive
+    format: tar.gz
+    builds:
+      - linux-build
+
+nfpms:
+  - id: linux-packages
+    package_name: website-status-checker
+    builds:
+      - linux-build
+    vendor: "Valentin Dumas"
+    homepage: "https://valentindumas.com"
+    maintainer: "Valentin Dumas"
+    description: "A lightweight system tray application that monitors your websites."
+    license: "MIT"
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin
+    dependencies:
+      - libgtk-3-0
+      - libayatana-appindicator3-1

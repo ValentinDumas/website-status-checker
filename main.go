@@ -5,9 +5,11 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/getlantern/systray"
@@ -18,28 +20,52 @@ import (
 	"github.com/ValentinDumas/website-status-checker/internal/notify"
 	"github.com/ValentinDumas/website-status-checker/internal/tray"
 )
-func main() {
-	var actualConfigPath string
+const appConfigDirName = "WebsiteStatusChecker"
+const configFileName = "sites.yaml"
 
+//go:embed sites.yaml
+var defaultSitesYAML []byte
+
+func getConfigPath() (string, error) {
 	if len(os.Args) > 1 {
-		actualConfigPath = os.Args[1]
+		return os.Args[1], nil
 	}
 
-	cfg, err := config.LoadConfig(actualConfigPath)
+	userConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		// Fallback to current directory if UserConfigDir is not available
+		return configFileName, nil
+	}
+
+	appConfigDir := filepath.Join(userConfigDir, appConfigDirName)
+	if err := os.MkdirAll(appConfigDir, 0755); err != nil {
+		return "", fmt.Errorf("creating config directory: %w", err)
+	}
+
+	configPath := filepath.Join(appConfigDir, configFileName)
+
+	// Create default config file if it doesn't exist
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		if err := os.WriteFile(configPath, defaultSitesYAML, 0644); err != nil {
+			return "", fmt.Errorf("writing default config file: %w", err)
+		}
+	}
+
+	return configPath, nil
+}
+
+func main() {
+	configPath, err := getConfigPath()
+	if err != nil {
+		log.Fatalf("Failed to initialize config path: %v", err)
+	}
+
+	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// For the tray manager, if we loaded the default config, we need its absolute path
-	trayConfigPath := actualConfigPath
-	if trayConfigPath == "" {
-		trayConfigPath, err = config.GetConfigPath()
-		if err != nil {
-			log.Fatalf("Failed to resolve absolute config path: %v", err)
-		}
-	}
-
-	fmt.Printf("Loaded %d sites from %s\n", len(cfg.Sites), trayConfigPath)
+	fmt.Printf("Loaded %d sites from %s\n", len(cfg.Sites), configPath)
 
 	timeout := time.Duration(cfg.Settings.RequestTimeout) * time.Second
 	chk := checker.NewChecker(timeout)
@@ -53,7 +79,8 @@ func main() {
 
 	mon := monitor.NewMonitor(cfg, chk, onStatusChange)
 
-	mgr := tray.NewManager(mon, trayConfigPath, config.LoadConfig)
+	// For the tray manager, we pass the path so it can be opened/reloaded by the user.
+	mgr := tray.NewManager(mon, configPath, config.LoadConfig)
 
 	systray.Run(mgr.OnReady, mgr.OnExit)
 }

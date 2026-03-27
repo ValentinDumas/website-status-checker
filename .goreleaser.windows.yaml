@@ -1,0 +1,20 @@
+version: 2
+
+project_name: website-status-checker
+
+env:
+  - CGO_ENABLED=1
+
+builds:
+  - id: windows-build
+    binary: website-status-checker
+    goos:
+      - windows
+    goarch:
+      - amd64
+
+archives:
+  - id: fallback-archive
+    format: zip
+    builds:
+      - windows-build

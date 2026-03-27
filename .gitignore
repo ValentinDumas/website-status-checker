@@ -43,3 +43,4 @@ build/
 # Sensitive config (if auth is added later)
 # Uncomment the line below if you add credentials to sites.yaml
 # sites.yaml
+website-status-checker
