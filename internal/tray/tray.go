@@ -4,6 +4,7 @@ package tray
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/getlantern/systray"
@@ -70,6 +71,7 @@ func (m *Manager) OnReady() {
 
 	go m.updateLoop()
 	go m.handleMenuClicks()
+	go m.watchConfigLoop()
 }
 
 // OnExit is called by systray.Run when the tray is shutting down.
@@ -230,6 +232,33 @@ func (m *Manager) handleReloadConfig() {
 		time.Sleep(1 * time.Second)
 		m.rebuildSiteItems()
 	}()
+}
+
+// watchConfigLoop periodically checks if the configuration file has been modified
+// on disk and automatically reloads it if changes are detected.
+func (m *Manager) watchConfigLoop() {
+	var lastModTime time.Time
+
+	// Get initial mod time if file exists
+	if info, err := os.Stat(m.configPath); err == nil {
+		lastModTime = info.ModTime()
+	}
+
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		<-ticker.C
+		info, err := os.Stat(m.configPath)
+		if err != nil {
+			continue // file might be temporarily locked or missing during a save
+		}
+
+		if info.ModTime().After(lastModTime) {
+			lastModTime = info.ModTime()
+			m.handleReloadConfig()
+		}
+	}
 }
 
 // rebuildSiteItems updates the site menu items after a config reload.
