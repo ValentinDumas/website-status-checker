@@ -18,25 +18,28 @@ import (
 	"github.com/ValentinDumas/website-status-checker/internal/notify"
 	"github.com/ValentinDumas/website-status-checker/internal/tray"
 )
-
 func main() {
-	var configPath string
+	var actualConfigPath string
+
 	if len(os.Args) > 1 {
-		configPath = os.Args[1]
-	} else {
-		var err error
-		configPath, err = config.GetConfigPath()
-		if err != nil {
-			log.Fatalf("Failed to get config path: %v", err)
-		}
+		actualConfigPath = os.Args[1]
 	}
 
-	cfg, err := config.LoadConfig(configPath)
+	cfg, err := config.LoadConfig(actualConfigPath)
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	fmt.Printf("Loaded %d sites from %s\n", len(cfg.Sites), configPath)
+	// For the tray manager, if we loaded the default config, we need its absolute path
+	trayConfigPath := actualConfigPath
+	if trayConfigPath == "" {
+		trayConfigPath, err = config.GetConfigPath()
+		if err != nil {
+			log.Fatalf("Failed to resolve absolute config path: %v", err)
+		}
+	}
+
+	fmt.Printf("Loaded %d sites from %s\n", len(cfg.Sites), trayConfigPath)
 
 	timeout := time.Duration(cfg.Settings.RequestTimeout) * time.Second
 	chk := checker.NewChecker(timeout)
@@ -50,7 +53,7 @@ func main() {
 
 	mon := monitor.NewMonitor(cfg, chk, onStatusChange)
 
-	mgr := tray.NewManager(mon, configPath, config.LoadConfig)
+	mgr := tray.NewManager(mon, trayConfigPath, config.LoadConfig)
 
 	systray.Run(mgr.OnReady, mgr.OnExit)
 }
