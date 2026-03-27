@@ -14,11 +14,7 @@ builds:
       - amd64
       - arm64
 
-app:
-  - id: darwin-app
-    name: "Website Status Checker"
-    builds:
-      - darwin-build
+
 
 archives:
   - id: fallback-archive
