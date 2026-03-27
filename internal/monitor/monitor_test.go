@@ -42,7 +42,7 @@ func TestMonitor_StartStop(t *testing.T) {
 
 	cfg := newTestConfig(server.URL)
 	chk := checker.NewChecker(5 * time.Second)
-	mon := NewMonitor(cfg, chk, nil)
+	mon := NewMonitor(cfg, chk, nil, nil)
 
 	mon.Start()
 	// Give the monitor time to perform the initial check.
@@ -75,7 +75,7 @@ func TestMonitor_GetStatuses_Order(t *testing.T) {
 
 	cfg := newTestConfig(serverA.URL, serverB.URL)
 	chk := checker.NewChecker(5 * time.Second)
-	mon := NewMonitor(cfg, chk, nil)
+	mon := NewMonitor(cfg, chk, nil, nil)
 
 	mon.Start()
 	time.Sleep(200 * time.Millisecond)
@@ -107,7 +107,7 @@ func TestMonitor_RefreshAll(t *testing.T) {
 
 	cfg := newTestConfig(server.URL)
 	chk := checker.NewChecker(5 * time.Second)
-	mon := NewMonitor(cfg, chk, nil)
+	mon := NewMonitor(cfg, chk, nil, nil)
 
 	// Don't Start() — just call RefreshAll() directly.
 	mon.RefreshAll()
@@ -149,7 +149,7 @@ func TestMonitor_StatusChangeCallback(t *testing.T) {
 
 	cfg := newTestConfig(server.URL)
 	chk := checker.NewChecker(5 * time.Second)
-	mon := NewMonitor(cfg, chk, callback)
+	mon := NewMonitor(cfg, chk, callback, nil)
 
 	// First check: site is up. No callback (first check, no previous state).
 	mon.RefreshAll()
@@ -204,7 +204,7 @@ func TestMonitor_ReloadConfig(t *testing.T) {
 
 	cfg := newTestConfig(serverA.URL)
 	chk := checker.NewChecker(5 * time.Second)
-	mon := NewMonitor(cfg, chk, nil)
+	mon := NewMonitor(cfg, chk, nil, nil)
 
 	mon.Start()
 	time.Sleep(200 * time.Millisecond)
@@ -241,7 +241,7 @@ func TestMonitor_DownSite(t *testing.T) {
 		},
 	}
 	chk := checker.NewChecker(1 * time.Second)
-	mon := NewMonitor(cfg, chk, nil)
+	mon := NewMonitor(cfg, chk, nil, nil)
 
 	mon.RefreshAll()
 

@@ -5,6 +5,7 @@ package monitor
 
 import (
 	"context"
+	"net"
 	"sync"
 	"time"
 
@@ -25,15 +26,21 @@ type SiteStatus struct {
 // (up → down or down → up). It is NOT called for the initial check.
 type StatusChangeCallback func(status SiteStatus)
 
+// ConnectivityChangeCallback is called whenever the machine's internet
+// connection state transitions (online <-> offline).
+type ConnectivityChangeCallback func(isOnline bool)
+
 // Monitor orchestrates periodic health checks for all configured sites.
 // It is safe for concurrent access.
 type Monitor struct {
-	checker        *checker.Checker
-	config         *config.Config
-	onStatusChange StatusChangeCallback
+	checker              *checker.Checker
+	config               *config.Config
+	onStatusChange       StatusChangeCallback
+	onConnectivityChange ConnectivityChangeCallback
 
 	mu       sync.RWMutex
 	statuses map[string]*SiteStatus // keyed by site name
+	isOnline bool                   // tracks if the machine has internet connectivity
 
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
@@ -42,12 +49,14 @@ type Monitor struct {
 // NewMonitor creates a Monitor that uses the given checker and config.
 // The optional onStatusChange callback is invoked whenever a site's up/down
 // status transitions.
-func NewMonitor(cfg *config.Config, chk *checker.Checker, onStatusChange StatusChangeCallback) *Monitor {
+func NewMonitor(cfg *config.Config, chk *checker.Checker, onStatusChange StatusChangeCallback, onConnectivityChange ConnectivityChangeCallback) *Monitor {
 	return &Monitor{
-		checker:        chk,
-		config:         cfg,
-		onStatusChange: onStatusChange,
-		statuses:       make(map[string]*SiteStatus),
+		checker:              chk,
+		config:               cfg,
+		onStatusChange:       onStatusChange,
+		onConnectivityChange: onConnectivityChange,
+		statuses:             make(map[string]*SiteStatus),
+		isOnline:             true, // Assume true until proven otherwise
 	}
 }
 
@@ -57,6 +66,13 @@ func NewMonitor(cfg *config.Config, chk *checker.Checker, onStatusChange StatusC
 func (m *Monitor) Start() {
 	ctx, cancel := context.WithCancel(context.Background())
 	m.cancel = cancel
+
+	// Synchronous first connectivity check.
+	m.isOnline = m.checkInternetConnection()
+
+	// Start continuous connectivity monitoring.
+	m.wg.Add(1)
+	go m.monitorConnectivity(ctx)
 
 	for i := range m.config.Sites {
 		site := m.config.Sites[i]
@@ -152,9 +168,58 @@ func (m *Monitor) monitorSite(ctx context.Context, site config.Site, interval ti
 	}
 }
 
+// IsOnline returns true if the machine currently has internet connectivity.
+func (m *Monitor) IsOnline() bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.isOnline
+}
+
+// checkInternetConnection attempts a lightweight TCP ping to a reliable host (Cloudflare DNS).
+func (m *Monitor) checkInternetConnection() bool {
+	conn, err := net.DialTimeout("tcp", "1.1.1.1:53", 3*time.Second)
+	if err != nil {
+		return false
+	}
+	conn.Close()
+	return true
+}
+
+// monitorConnectivity periodically checks for network drops and triggers callbacks
+// if the connection state changes.
+func (m *Monitor) monitorConnectivity(ctx context.Context) {
+	defer m.wg.Done()
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			currentOnline := m.checkInternetConnection()
+
+			m.mu.Lock()
+			previousOnline := m.isOnline
+			m.isOnline = currentOnline
+			m.mu.Unlock()
+
+			if currentOnline != previousOnline && m.onConnectivityChange != nil {
+				m.onConnectivityChange(currentOnline)
+			}
+		}
+	}
+}
+
 // checkAndUpdate performs a health check and updates the status store.
-// If the site's up/down status changed, it invokes the callback.
+// If the internet connection is currently offline, it skips the HTTP check
+// to prevent false positives and does NOT execute the StatusChangeCallback.
 func (m *Monitor) checkAndUpdate(site config.Site) {
+	if !m.IsOnline() {
+		return
+	}
+
 	result := m.checker.Check(site)
 
 	m.mu.Lock()

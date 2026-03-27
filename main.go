@@ -72,12 +72,22 @@ func main() {
 
 	// Set up desktop notifications for status changes.
 	var onStatusChange monitor.StatusChangeCallback
+	var onConnectivityChange monitor.ConnectivityChangeCallback
+	
 	if cfg.Settings.NotifyOnChange {
 		notifier := notify.NewDesktopNotifier()
 		onStatusChange = notify.StatusChangeHandler(notifier)
+		
+		onConnectivityChange = func(isOnline bool) {
+			if isOnline {
+				_ = notifier.Send("🟢 Online", "Machine connected to the internet")
+			} else {
+				_ = notifier.Send("🔌 Offline", "Machine lost internet connection. Checks paused.")
+			}
+		}
 	}
 
-	mon := monitor.NewMonitor(cfg, chk, onStatusChange)
+	mon := monitor.NewMonitor(cfg, chk, onStatusChange, onConnectivityChange)
 
 	// For the tray manager, we pass the path so it can be opened/reloaded by the user.
 	mgr := tray.NewManager(mon, configPath, config.LoadConfig)

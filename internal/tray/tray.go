@@ -40,6 +40,7 @@ type Manager struct {
 	loadConfig func(string) (*config.Config, error)
 
 	// Menu items — stored for dynamic updates.
+	internetItem   *systray.MenuItem
 	siteItems      []*systray.MenuItem
 	editConfigItem *systray.MenuItem
 	refreshItem    *systray.MenuItem
@@ -82,6 +83,10 @@ func (m *Manager) OnExit() {
 // buildMenu creates the tray menu structure.
 // Site items are created based on the current monitor config.
 func (m *Manager) buildMenu() {
+	m.internetItem = systray.AddMenuItem("📶 Network: Connected", "Machine internet connectivity")
+	m.internetItem.Disable()
+	systray.AddSeparator()
+
 	statuses := m.monitor.GetStatuses()
 
 	// If we have existing site items from a previous build, we can't remove
@@ -184,28 +189,37 @@ func (m *Manager) updateUI() {
 		return
 	}
 
-	level := aggregateStatus(statuses)
+	isOnline := m.monitor.IsOnline()
 
-	// Update icon.
-	switch level {
-	case StatusAllUp:
-		systray.SetIcon(iconGreen)
-	case StatusPartialDown:
-		systray.SetIcon(iconYellow)
-	case StatusAllDown:
-		systray.SetIcon(iconRed)
-	default:
+	if !isOnline {
+		m.internetItem.SetTitle("🚫 Network: Offline")
 		systray.SetIcon(iconGray)
-	}
+		systray.SetTooltip("Website Status: Machine Offline")
+	} else {
+		m.internetItem.SetTitle("📶 Network: Connected")
+		level := aggregateStatus(statuses)
 
-	// Update tooltip.
-	upCount := 0
-	for _, s := range statuses {
-		if s.LatestResult.IsUp {
-			upCount++
+		// Update icon.
+		switch level {
+		case StatusAllUp:
+			systray.SetIcon(iconGreen)
+		case StatusPartialDown:
+			systray.SetIcon(iconYellow)
+		case StatusAllDown:
+			systray.SetIcon(iconRed)
+		default:
+			systray.SetIcon(iconGray)
 		}
+
+		// Update tooltip.
+		upCount := 0
+		for _, s := range statuses {
+			if s.LatestResult.IsUp {
+				upCount++
+			}
+		}
+		systray.SetTooltip(fmt.Sprintf("Website Status: %d/%d sites up", upCount, len(statuses)))
 	}
-	systray.SetTooltip(fmt.Sprintf("Website Status: %d/%d sites up", upCount, len(statuses)))
 
 	// Update site menu items.
 	for i, s := range statuses {
