@@ -39,8 +39,9 @@ type Manager struct {
 	loadConfig func(string) (*config.Config, error)
 
 	// Menu items — stored for dynamic updates.
-	siteItems     []*systray.MenuItem
-	refreshItem   *systray.MenuItem
+	siteItems      []*systray.MenuItem
+	editConfigItem *systray.MenuItem
+	refreshItem    *systray.MenuItem
 	reloadItem    *systray.MenuItem
 	autostartItem *systray.MenuItem
 	quitItem      *systray.MenuItem
@@ -99,6 +100,7 @@ func (m *Manager) buildMenu() {
 	}
 
 	systray.AddSeparator()
+	m.editConfigItem = systray.AddMenuItem("✏️ Edit Configuration", "Open config file in text editor")
 	m.refreshItem = systray.AddMenuItem("🔄 Refresh Now", "Check all sites immediately")
 	m.reloadItem = systray.AddMenuItem("📄 Reload Config", "Reload sites.yaml without restarting")
 	systray.AddSeparator()
@@ -111,6 +113,8 @@ func (m *Manager) buildMenu() {
 func (m *Manager) handleMenuClicks() {
 	for {
 		select {
+		case <-m.editConfigItem.ClickedCh:
+			m.handleEditConfig()
 		case <-m.refreshItem.ClickedCh:
 			go m.monitor.RefreshAll()
 		case <-m.reloadItem.ClickedCh:
@@ -121,6 +125,13 @@ func (m *Manager) handleMenuClicks() {
 			systray.Quit()
 			return
 		}
+	}
+}
+
+// handleEditConfig opens the configuration file in the default OS text editor.
+func (m *Manager) handleEditConfig() {
+	if err := openEditor(m.configPath); err != nil {
+		systray.SetTooltip(fmt.Sprintf("Failed to open editor: %v", err))
 	}
 }
 

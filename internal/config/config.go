@@ -48,9 +48,21 @@ func (s *Site) EffectiveCheckInterval(globalInterval int) int {
 }
 
 // LoadConfig reads and parses the YAML configuration file at the given path.
+// If path is empty, it uses the OS-specific native configuration directory.
 // It applies default values for missing optional fields and validates all
 // required fields before returning.
 func LoadConfig(path string) (*Config, error) {
+	if path == "" {
+		var err error
+		path, err = GetConfigPath()
+		if err != nil {
+			return nil, err
+		}
+		if err := EnsureConfigExists(path); err != nil {
+			return nil, err
+		}
+	}
+
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("reading config file: %w", err)

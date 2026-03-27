@@ -19,12 +19,16 @@ import (
 	"github.com/ValentinDumas/website-status-checker/internal/tray"
 )
 
-const defaultConfigPath = "sites.yaml"
-
 func main() {
-	configPath := defaultConfigPath
+	var configPath string
 	if len(os.Args) > 1 {
 		configPath = os.Args[1]
+	} else {
+		var err error
+		configPath, err = config.GetConfigPath()
+		if err != nil {
+			log.Fatalf("Failed to get config path: %v", err)
+		}
 	}
 
 	cfg, err := config.LoadConfig(configPath)
