@@ -81,11 +81,14 @@ func (m *Monitor) GetStatuses() []SiteStatus {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	result := make([]SiteStatus, 0, len(m.statuses))
+	result := make([]SiteStatus, 0, len(m.config.Sites))
 	// Preserve config order instead of map iteration order.
 	for _, site := range m.config.Sites {
 		if status, ok := m.statuses[site.Name]; ok {
 			result = append(result, *status)
+		} else {
+			// Return a placeholder so clients know the site is configured but pending.
+			result = append(result, SiteStatus{Site: site})
 		}
 	}
 	return result
