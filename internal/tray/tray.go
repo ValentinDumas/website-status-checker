@@ -24,6 +24,39 @@ const (
 	StatusUnknown                       // no checks performed yet
 )
 
+// 8-Spacing UI Rule (En Space U+2002) translates to ~8px visually.
+const space8px = "\u2002"
+
+// iconTheme defines the dictionary of UI string icons.
+type iconTheme struct {
+	Up              string
+	Down            string
+	Unknown         string
+	NetworkOnline   string
+	NetworkOffline  string
+	UtilityEdit     string
+	UtilityRefresh  string
+	UtilityReload   string
+	UtilityAutoOn   string
+	UtilityAutoOff  string
+	UtilityQuit     string
+}
+
+// currentTheme drives all textural graphics using Theme 1 (Vibrant Emojis).
+var currentTheme = iconTheme{
+	Up:              "🟢",
+	Down:            "🔴",
+	Unknown:         "⚪",
+	NetworkOnline:   "📶",
+	NetworkOffline:  "🚫",
+	UtilityEdit:     "✏️",
+	UtilityRefresh:  "🔄",
+	UtilityReload:   "📄",
+	UtilityAutoOn:   "🟢",
+	UtilityAutoOff:  "⚪",
+	UtilityQuit:     "❌",
+}
+
 // Icons embedded as Go byte slices.
 // These are minimal 16x16 ICO files generated programmatically.
 var (
@@ -83,7 +116,7 @@ func (m *Manager) OnExit() {
 // buildMenu creates the tray menu structure.
 // Site items are created based on the current monitor config.
 func (m *Manager) buildMenu() {
-	m.internetItem = systray.AddMenuItem("📶 Network: Connected", "Machine internet connectivity")
+	m.internetItem = systray.AddMenuItem(fmt.Sprintf("%s%sNetwork: Connected", currentTheme.NetworkOnline, space8px), "Machine internet connectivity")
 	m.internetItem.Disable()
 	systray.AddSeparator()
 
@@ -107,13 +140,13 @@ func (m *Manager) buildMenu() {
 	}
 
 	systray.AddSeparator()
-	m.editConfigItem = systray.AddMenuItem("✏️ Edit Configuration", "Open config file in text editor")
-	m.refreshItem = systray.AddMenuItem("🔄 Refresh Now", "Check all sites immediately")
-	m.reloadItem = systray.AddMenuItem("📄 Reload Config", "Reload sites.yaml without restarting")
+	m.editConfigItem = systray.AddMenuItem(fmt.Sprintf("%s%sEdit Configuration", currentTheme.UtilityEdit, space8px), "Open config file in text editor")
+	m.refreshItem = systray.AddMenuItem(fmt.Sprintf("%s%sRefresh Now", currentTheme.UtilityRefresh, space8px), "Check all sites immediately")
+	m.reloadItem = systray.AddMenuItem(fmt.Sprintf("%s%sReload Config", currentTheme.UtilityReload, space8px), "Reload sites.yaml without restarting")
 	systray.AddSeparator()
 	m.autostartItem = systray.AddMenuItem(m.autostartLabel(), "Start application on Windows login")
 	systray.AddSeparator()
-	m.quitItem = systray.AddMenuItem("❌ Quit", "Exit Website Status Checker")
+	m.quitItem = systray.AddMenuItem(fmt.Sprintf("%s%sQuit", currentTheme.UtilityQuit, space8px), "Exit Website Status Checker")
 }
 
 // handleMenuClicks listens for menu item clicks in a blocking loop.
@@ -161,9 +194,9 @@ func (m *Manager) handleAutostartToggle() {
 // autostartLabel returns the display label for the auto-start menu item.
 func (m *Manager) autostartLabel() string {
 	if m.autoStarter.IsEnabled() {
-		return "🟢 Start on Boot (enabled)"
+		return fmt.Sprintf("%s%sStart on Boot (enabled)", currentTheme.UtilityAutoOn, space8px)
 	}
-	return "⚪ Start on Boot (disabled)"
+	return fmt.Sprintf("%s%sStart on Boot (disabled)", currentTheme.UtilityAutoOff, space8px)
 }
 
 // updateLoop periodically reads statuses from the monitor and updates
@@ -192,11 +225,11 @@ func (m *Manager) updateUI() {
 	isOnline := m.monitor.IsOnline()
 
 	if !isOnline {
-		m.internetItem.SetTitle("🚫 Network: Offline")
+		m.internetItem.SetTitle(fmt.Sprintf("%s%sNetwork: Offline", currentTheme.NetworkOffline, space8px))
 		systray.SetIcon(iconGray)
 		systray.SetTooltip("Website Status: Machine Offline")
 	} else {
-		m.internetItem.SetTitle("📶 Network: Connected")
+		m.internetItem.SetTitle(fmt.Sprintf("%s%sNetwork: Connected", currentTheme.NetworkOnline, space8px))
 		level := aggregateStatus(statuses)
 
 		// Update icon.
@@ -299,23 +332,23 @@ func (m *Manager) rebuildSiteItems() {
 }
 
 // formatSiteLabel builds the display string for a site menu item.
-// Examples: "🟢 My Portfolio (12ms)" or "🔴 API Health (error)"
+// Implements 8-spacing rule (En Space) between icon, text, and metadata.
 func formatSiteLabel(s monitor.SiteStatus) string {
-	indicator := "🟢"
+	indicator := currentTheme.Up
 	if !s.LatestResult.IsUp {
-		indicator = "🔴"
+		indicator = currentTheme.Down
 	}
 
 	if s.LatestResult.CheckedAt.IsZero() {
-		return fmt.Sprintf("⚪ %s (checking...)", s.Site.Name)
+		return fmt.Sprintf("%s%s%s%s(checking...)", currentTheme.Unknown, space8px, s.Site.Name, space8px)
 	}
 
 	if s.LatestResult.Error != nil {
-		return fmt.Sprintf("%s %s (error)", indicator, s.Site.Name)
+		return fmt.Sprintf("%s%s%s%s(error)", indicator, space8px, s.Site.Name, space8px)
 	}
 
 	ms := s.LatestResult.ResponseTime.Milliseconds()
-	return fmt.Sprintf("%s %s (%dms)", indicator, s.Site.Name, ms)
+	return fmt.Sprintf("%s%s%s%s(%dms)", indicator, space8px, s.Site.Name, space8px, ms)
 }
 
 // aggregateStatus determines the overall status level across all sites.
