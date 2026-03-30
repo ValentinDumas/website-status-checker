@@ -111,6 +111,29 @@ go build -ldflags="-H=windowsgui" -o status-checker.exe .
 go build -v -o website-status-checker .
 ```
 
+## Building Releases Locally
+
+You can use [GoReleaser](https://goreleaser.com) to generate polished, packaged releases natively onto your system inside the `dist/` directory, completely bypassing the GitHub Actions CI pipeline.
+
+### macOS Natively
+```bash
+goreleaser release --snapshot --clean --config .goreleaser.darwin.yaml
+```
+
+### Windows
+*(If running natively on Windows or WSL)*
+```bash
+goreleaser release --snapshot --clean --config .goreleaser.windows.yaml
+```
+
+### Linux
+*(If running natively on Linux)*
+```bash
+goreleaser release --snapshot --clean --config .goreleaser.linux.yaml
+```
+
+> **Note**: Because this application uses CGO for native system tray integration, cross-compilation is highly complex. For local development, always build your snapshot releases directly on the target operating system.
+
 ## License
 
 MIT
